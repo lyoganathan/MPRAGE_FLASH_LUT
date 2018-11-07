@@ -2,7 +2,9 @@
 
 Using a T1W-MPRAGE, PDW-FLASH and B1+ map.
 
-Generating lookup table:
+All you need to generate it is equations.py and MPRAGE_FLASH_lookup.py. To read in nifti or gifti data and pass it through the table, you need something like nibael.
+
+Prereqs:
 ```
 # Make sure you have numpy
 import numpy as np
@@ -12,13 +14,14 @@ from mpl_toolkits.mplot3d import Axes3D
 # pandas to read and write to csv
 import pandas as pd
 from MPRAGE_FLASH_lookup import generate_lookup
-
-# Sequence parameters: TI, ES, TD, alpha, pe1, enc_scheme,ES_PD,alpha_PD,pe1_PD
-# This takes about 5 minutes, can be made faster or slower depending on how
-# dense you want to sample the function
-T1_lookup = generate_lookup(1,0.007916,1.1,12,100,'centric',0.007916,4,180)
-
-# Plotting lookup table:
+```
+Generating the table, this takes about 5 minutes. The arguments are sequence parameters for the T1W and PDW images: TI, ES, TD, alpha, pe1, enc_scheme,ES_PD,alpha_PD,pe1_PD
+```
+T1_lookup = generate_lookup(1,0.007916,1.1,12,100,
+  'centric',0.007916,4,180)
+```
+Plotting the table:
+```
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 ax.plot_trisurf(T1_lookup[:, 1], T1_lookup[:, 2], T1_lookup[:, 0], cmap=plt.cm.jet, linewidth=0.2, antialiased=True)
@@ -115,31 +118,32 @@ All brain images were made by exporting to gifti and viewing in connectome-worke
 
 You can also add a parameter for inversion efficiency (the theta in wang_mprage).
 
-###Deciphering sequence parameters (Siemens & GE):
+### Deciphering sequence parameters (Siemens & GE):
 For example GE's opti setting for their BRAVO sequence combines TI and TD. They have a pos_start_ir which is TI, and opti minus that gives TD.
 TR in GE protocol and DICOM refers to echo spacing, whereas on Siemens, TR is the repetition time.
 
-##Quantitative MRI
+## Quantitative MRI
 Map values of T1, a property of tissue. Several methods exist to do T1 mapping across the whole brain.
-Popular ones include. Paper. We can also use variable flip angle method. Generally, two SPGR/FLASH images are collected.
+We use variable flip angle method. Generally, two SPGR/FLASH images are collected.
 Keep everything exactly the same, but change flip angle. One T1W image and PDW image. We can do a similar method, using
-MPRAGE and FLASH images, based on this paper: Bock et al.
+MPRAGE and FLASH images, based on this paper:
 
 The principle is, the signal intensity can be worked out mathematically as a function of imaging parameters. For example the code uses MPRAGE equations published from Wang et al. and Protti et al. The Bock et al. equations are also in the code and they give the same result. FLASH also known as SPGR equations have also been worked out.
 
-# B1+ & Inversion efficiency
+## B1+ & Inversion efficiency
+Somehow related apprently
 
-##Imaging parameters:
-TI - time between inversion pulse and beginning of acquisition block
-ES - time between successive excitation pulses
-TD - time delay from end of acquisition to next inversion
-flip angle -
-Phase encoding steps - Number of phase encodes in the inner loop
-Phase encoding scheme - We assume two possibilities, centric (k-space centre acquired first) or linear (k-space centre acquired after N/2 steps)
+## Imaging parameters:
+- TI - time between inversion pulse and beginning of acquisition block
+- ES - time between successive excitation pulses
+- TD - time delay from end of acquisition to next inversion
+- flip angle -
+- Phase encoding steps - Number of phase encodes in the inner loop
+- Phase encoding scheme - We assume two possibilities, centric (k-space centre acquired first) or linear (k-space centre acquired after N/2 steps)
 
 If you have an adibiatic pulse, your sequence should be insensitive to B1+ inhomogenity.
 These signal equations are idealized, many other factors play a role such as receiver gain, bandwidth,
 We hope the division takes care of many things, but there things it doesn't take care of like imperfect spoiling. We can also incorporate an inversion efficiency term, however we don't know how to map that across the brain.
 
 
-Using a lookup table, we assume many things. We consider k-space centre to be intensity values. K-space centre does determine most of the contrast, but not for high spatial frequencies.
+Using a lookup table, we assume many things. We assume k-space centre determines signal intensity.
