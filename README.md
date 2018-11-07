@@ -101,7 +101,7 @@ rh_t1s = rh_r1.reshape(10,32492)
 lh_r1s = 1/lh_t1s
 rh_t1s = 1/lh_t1s
 
-#Mean and export to gifti, using template of imported gifti:
+#Mean and export to gifti, using template of imported gifti: Basically Changing a random imported Gifti image's data with the mean R1 data
 
 lh_ratio.darrays[0].data = 1/np.mean(lh_r1s,0,dtype='float32')
 rh_ratio.darrays[0].data = 1/np.mean(rh_r1s,0,dtype='float32')
