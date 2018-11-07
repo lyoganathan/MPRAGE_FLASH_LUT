@@ -39,7 +39,7 @@ To make the sampling finer or coarser, you can go into MPRAGE_FLASH_lookup.py an
 Now we can look up ratio image intensities and apply B1+ correction them:
 If you have freesurfer run, and map your data onto the surface folliwing HCP pipelines you can load in your gifti files, run it through the look up Table, and export it as R1 maps:
 
-![](imgs/Ratio_Image.JPG) ![](imgs/B1_map.JPG)
+![](imgs/Ratio_Image.JPG) ![](imgs/B1_Map.JPG)
 
 
 We can use this surface data as input into the lookup table:
