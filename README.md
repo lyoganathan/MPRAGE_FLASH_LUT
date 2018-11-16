@@ -1,8 +1,10 @@
+# R1 (1/T1) mapping using MPRAGE and FLASH images and a lookup table
+## Overview
+Based on this paper: [Optimizing T1-weighted imaging of cortical myelin content at 3.0 T. Bock et. al, (2013) Neuroimage.](https://www.sciencedirect.com/science/article/pii/S1053811912009615)
+Using a T1W-MPRAGE (IR-GRE sequence), PDW-FLASH (GRE sequence) and B1+ map, we can estimate values of T1 using signal equations. equations.py has the MPRAGE signal equation based on this paper: [Optimizing the magnetization-prepared rapid gradient-echo (MP-RAGE) sequence. Wang et. al (2014) PLoS One.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0096899) The same equation also appears in this paper: [Development and validation of a new MRI simulation technique that can reliably estimate optimal in vivo scanning parameters in a glioblastoma murine model. Protti et. al, (2018) PloS one,](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0200611) in which the authors also provide a C++ implementation of signal equation simulations. equations.py also has steady state flash equation. MPRAGE_FLASH_lookup.py uses these equations to create a lookup table of values of T1 for values of MPRAGE/FLASH ratio, including deviations in the flip angle caused by B1+ inhomogenity. sample_R1_map.py uses scipy's griddata to interpolate this lookup table and find values of T1 given values of the MPRAGE/FLASH ratio and a B1 map.
+
 ## Using the code
-
-Using a T1W-MPRAGE, PDW-FLASH and B1+ map.
-
-All you need to generate it is equations.py and MPRAGE_FLASH_lookup.py. To read in nifti or gifti data and pass it through the table, you need something like nibael.
+To generate a lookup table, copy equations.py and MPRAGE_FLASH_lookup.py to your working directory. To read in nifti or gifti data and pass it through the table, you need something like nibael.
 
 Prereqs:
 ```
@@ -15,7 +17,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 from MPRAGE_FLASH_lookup import generate_lookup
 ```
-Generating the table, this takes about 5 minutes. The arguments are sequence parameters for the T1W and PDW images: TI, ES, TD, alpha, pe1, enc_scheme,ES_PD,alpha_PD,pe1_PD
+Generating the table, this takes about 5 minutes. The arguments are sequence parameters for the T1W and PDW images: TI, ES, TD, alpha, pe1, enc_scheme, ES_PD, alpha_PD, pe1_PD
 ```
 T1_lookup = generate_lookup(1,0.007916,1.1,12,100,
   'centric',0.007916,4,180)
@@ -39,13 +41,12 @@ lookup_df.to_csv("T1_Lookup_Table.csv")
 ![](imgs/Lookup_Table.png)
 
 To make the sampling finer or coarser, you can go into MPRAGE_FLASH_lookup.py and change the step-size or range of T1 and B1 values.
-Now we can look up ratio image intensities and apply B1+ correction them:
-If you have freesurfer run, and map your data onto the surface folliwing HCP pipelines you can load in your gifti files, run it through the look up Table, and export it as R1 maps:
+If you have freesurfer run, and map your data onto the surface following HCP pipelines, you can view you data using connectome-workbench:
 
 ![](imgs/Ratio_Image.JPG) ![](imgs/B1_Map.JPG)
 
 
-We can use this surface data as input into the lookup table:
+Now we can look up ratio image intensities and apply B1+ correction to them. We can use this surface data as input into the lookup table:
 
 ```
 # Import gifti data using nibabel
@@ -116,24 +117,9 @@ nib.save(rh_ratio,'{}\\rh_R1_mean.func.gii'.format(path))
 
 All brain images were made by exporting to gifti and viewing in connectome-workebnch.
 
-You can also add a parameter for inversion efficiency (the theta in wang_mprage).
-
 ### Deciphering sequence parameters (Siemens & GE):
 For example GE's opti setting for their BRAVO sequence combines TI and TD. They have a pos_start_ir which is TI, and opti minus that gives TD.
 TR in GE protocol and DICOM refers to echo spacing, whereas on Siemens, TR is the repetition time.
-
-## Quantitative MRI
-Map values of T1, a property of tissue. Several methods exist to do T1 mapping across the whole brain.
-We use variable flip angle method. Generally, two SPGR/FLASH images are collected.
-Keep everything exactly the same, but change flip angle. One T1W image and PDW image. We can do a similar method, using
-MPRAGE and FLASH images, based on this paper:
-
-The principle is, the signal intensity can be worked out mathematically as a function of imaging parameters. For example the code uses MPRAGE equations published from Wang et al. and Protti et al. The Bock et al. equations are also in the code and they give the same result. FLASH also known as SPGR equations have also been worked out.
-
-## B1+ & Inversion efficiency
-Somehow related apprently
-
-## Imaging parameters:
 - TI - time between inversion pulse and beginning of acquisition block
 - ES - time between successive excitation pulses
 - TD - time delay from end of acquisition to next inversion
@@ -141,9 +127,16 @@ Somehow related apprently
 - Phase encoding steps - Number of phase encodes in the inner loop
 - Phase encoding scheme - We assume two possibilities, centric (k-space centre acquired first) or linear (k-space centre acquired after N/2 steps)
 
+### Quantitative MRI
+Several methods exist to do T1 mapping across the whole brain [Evaluation of MRI sequences for quantitative T1 brain mapping. Tsialios et al., (2017)](http://iopscience.iop.org/article/10.1088/1742-6596/931/1/012038/meta). The variable flip angle method involves collecting two SPGR or FLASH images. Inversion recovery involves using different inversion times. The end goal is to map values of T1, as opposed to simply looking at signal intensity. The current method is similar to MP2RAGE, but using separate images.
+
+The principle is, the signal intensity can be worked out mathematically as a function of imaging parameters. For example the code uses MPRAGE equations published from Wang et al. and Protti et al. The Bock et al. equations are also in the code and they give the same result.
+
+### B1+ & Inversion efficiency
+
 If you have an adibiatic pulse, your sequence should be insensitive to B1+ inhomogenity.
 These signal equations are idealized, many other factors play a role such as receiver gain, bandwidth,
-We hope the division takes care of many things, but there things it doesn't take care of like imperfect spoiling. We can also incorporate an inversion efficiency term, however we don't know how to map that across the brain.
+We hope the division takes care of many things, but there things it doesn't take care of like imperfect spoiling. We can also incorporate an inversion efficiency term (the theta in wang_mprage).
 
-
+### Assumptions:
 Using a lookup table, we assume many things. We assume k-space centre determines signal intensity.
