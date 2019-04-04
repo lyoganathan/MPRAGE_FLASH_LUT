@@ -1,7 +1,7 @@
 # R1 (1/T1) mapping using MPRAGE and FLASH images and a lookup table
 ## Overview
 Based on this paper: [Optimizing T1-weighted imaging of cortical myelin content at 3.0 T. Bock et. al, (2013) Neuroimage.](https://www.sciencedirect.com/science/article/pii/S1053811912009615)
-Using a T1W-MPRAGE (IR-GRE sequence), PDW-FLASH (GRE sequence) and B1+ map, we can estimate values of T1 using signal equations. equations.py has the MPRAGE signal equation based on this paper: [Optimizing the magnetization-prepared rapid gradient-echo (MP-RAGE) sequence. Wang et. al (2014) PLoS One.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0096899) The same equation also appears in this paper: [Development and validation of a new MRI simulation technique that can reliably estimate optimal in vivo scanning parameters in a glioblastoma murine model. Protti et. al, (2018) PloS one,](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0200611) in which the authors also provide a C++ implementation of signal equation simulations. equations.py also has steady state flash equation. MPRAGE_FLASH_lookup.py uses these equations to create a lookup table of values of T1 for values of MPRAGE/FLASH ratio, including deviations in the flip angle caused by B1+ inhomogenity. sample_R1_map.py uses scipy's griddata to interpolate this lookup table and find values of T1 given values of the MPRAGE/FLASH ratio and a B1 map.
+Using a T1W-MPRAGE (IR-GRE sequence), PDW-FLASH (GRE sequence) and B1+ map, we can estimate values of T1 using signal equations. equations.py has the MPRAGE signal equation based on this paper: [Optimizing the magnetization-prepared rapid gradient-echo (MP-RAGE) sequence. Wang et. al (2014) PLoS One.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0096899) The same equation also appears in this paper: [Development and validation of a new MRI simulation technique that can reliably estimate optimal in vivo scanning parameters in a glioblastoma murine model. Protti et. al, (2018) PloS one,](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0200611) in which the authors also provide a C++ implementation of signal equation simulations. equations.py also has steady state flash equation. MPRAGE_FLASH_lookup.py uses these equations to create a lookup table of values of T1 for values of MPRAGE/FLASH ratio, including deviations in the flip angle caused by B1+. sample_R1_map.py uses scipy's griddata to interpolate this lookup table and find values of T1 given values of the MPRAGE/FLASH ratio and a B1 map.
 
 ## Using the code
 To generate a lookup table, copy equations.py and MPRAGE_FLASH_lookup.py to your working directory. To read in nifti or gifti data and pass it through the table, you need something like nibael.
@@ -83,7 +83,7 @@ for x in range(0,len(input_dirs)):
 
 ```
 
-Now we can use our lookup table and find values of T1 for every R1 and B1+.
+Now we can use our lookup table and find values of T1 for every ratio and B1+.
 
 ```
 from scipy import interpolate
@@ -117,26 +117,22 @@ nib.save(rh_ratio,'{}\\rh_R1_mean.func.gii'.format(path))
 
 All brain images were made by exporting to gifti and viewing in connectome-workebnch.
 
-### Deciphering sequence parameters (Siemens & GE):
-For example GE's opti setting for their BRAVO sequence combines TI and TD. They have a pos_start_ir which is TI, and opti minus that gives TD.
+### Sequence parameters (Siemens & GE):
+For example GE's opti setting for their BRAVO sequence combines TI and TD. They have a pos_start_ir which is TI, and opti minus that gives TD. Also, on Siemens, the TI is from inversion pulse to centre of acquisition block whereas for GE it's from inversion pulse to beginning of acquisition block, so setting on the same value for TI has different meanings depending on the scanner. For the MPRAGE equations, we expect TI to represent inversion pulse to beginning of acquisiton block, so you have to do some subtraction to find out what the actual value should be.
 TR in GE protocol and DICOM refers to echo spacing, whereas on Siemens, TR is the repetition time.
 - TI - time between inversion pulse and beginning of acquisition block
 - ES - time between successive excitation pulses
 - TD - time delay from end of acquisition to next inversion
-- flip angle -
+- flip angle - small tip angle usually called alpha
 - Phase encoding steps - Number of phase encodes in the inner loop
 - Phase encoding scheme - We assume two possibilities, centric (k-space centre acquired first) or linear (k-space centre acquired after N/2 steps)
 
 ### Quantitative MRI
 Several methods exist to do T1 mapping across the whole brain [Evaluation of MRI sequences for quantitative T1 brain mapping. Tsialios et al., (2017)](http://iopscience.iop.org/article/10.1088/1742-6596/931/1/012038/meta). The variable flip angle method involves collecting two SPGR or FLASH images. Inversion recovery involves using different inversion times. The end goal is to map values of T1, as opposed to simply looking at signal intensity. The current method is similar to MP2RAGE, but using separate images.
 
-The principle is, the signal intensity can be worked out mathematically as a function of imaging parameters. For example the code uses MPRAGE equations published from Wang et al. and Protti et al. The Bock et al. equations are also in the code and they give the same result.
+### Assumptions:
+Using a lookup table, we assume many things. We assume k-space centre determines signal intensity. Also assume perfect spoiling and perfect inversion efficiency (getting exactly 180 degree inversion everywhere).
 
-### B1+ & Inversion efficiency
+#### B1+ & Inversion efficiency
 
 If you have an adibiatic pulse, your sequence should be insensitive to B1+ inhomogenity.
-These signal equations are idealized, many other factors play a role such as receiver gain, bandwidth,
-We hope the division takes care of many things, but there things it doesn't take care of like imperfect spoiling. We can also incorporate an inversion efficiency term (the theta in wang_mprage).
-
-### Assumptions:
-Using a lookup table, we assume many things. We assume k-space centre determines signal intensity.
