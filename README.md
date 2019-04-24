@@ -1,4 +1,7 @@
 # R1 (1/T1) mapping using MPRAGE and FLASH images and a lookup table
+
+![](imgs/R1_Process.JPG)
+
 ## Overview
 Based on this paper: [Optimizing T1-weighted imaging of cortical myelin content at 3.0 T. Bock et. al, (2013) Neuroimage.](https://www.sciencedirect.com/science/article/pii/S1053811912009615)
 Using a T1W-MPRAGE (IR-GRE sequence), PDW-FLASH (GRE sequence) and B1+ map, we can estimate values of T1 using signal equations. equations.py has the MPRAGE signal equation based on this paper: [Optimizing the magnetization-prepared rapid gradient-echo (MP-RAGE) sequence. Wang et. al (2014) PLoS One.](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0096899) The same equation also appears in this paper: [Development and validation of a new MRI simulation technique that can reliably estimate optimal in vivo scanning parameters in a glioblastoma murine model. Protti et. al, (2018) PloS one,](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0200611) in which the authors also provide a C++ implementation of signal equation simulations. equations.py also has steady state flash equation. MPRAGE_FLASH_lookup.py uses these equations to create a lookup table of values of T1 for values of MPRAGE/FLASH ratio, including deviations in the flip angle caused by B1+. sample_R1_map.py uses scipy's griddata to interpolate this lookup table and find values of T1 given values of the MPRAGE/FLASH ratio and a B1 map.
