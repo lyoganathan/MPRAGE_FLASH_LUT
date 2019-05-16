@@ -121,7 +121,7 @@ nib.save(rh_ratio,'{}\\rh_R1_mean.func.gii'.format(path))
 All brain images were made by exporting to gifti and viewing in connectome-workebnch.
 
 ### Sequence parameters (Siemens & GE):
-For example GE's opti setting for their BRAVO sequence combines TI and TD. They have a pos_start_ir which is TI, and opti minus that gives TD. Also, on Siemens, the TI is from inversion pulse to centre of acquisition block whereas for GE it's from inversion pulse to beginning of acquisition block, so setting on the same value for TI has different meanings depending on the scanner. For the MPRAGE equations, we expect TI to represent inversion pulse to beginning of acquisiton block, so you have to do some subtraction to find out what the actual value should be.
+For example GE's opti setting for their BRAVO sequence combines TI and TD. They have a pos_start_ir which is TI, and opti minus that gives TD. For Siemens, you can use the TI and TR to figure out what TD is. Also, depending on k-space ordering/view order/profile order, TI might be from inversion pulse to beginning of acquisition block (centric), or from inversion pulse to center of acquisition block (linear), so setting the same value for TI could have different meanings depending on k-space ordering. For the MPRAGE equations, we expect TI to represent inversion pulse to beginning of acquisiton block, so you might have to do some subtraction to find out what the actual value should be.
 TR in GE protocol and DICOM refers to echo spacing, whereas on Siemens, TR is the repetition time.
 - TI - time between inversion pulse and beginning of acquisition block
 - ES - time between successive excitation pulses
